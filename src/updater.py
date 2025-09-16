@@ -183,37 +183,31 @@ class AutoUpdater:
         except Exception as e:
             messagebox.showerror("Erro", f"Erro ao executar updater: {str(e)}")
 
-    def _get_exe_download_url(self, zip_download_url):
-        """Encontra a URL específica do executável no GitHub release"""
+    def _get_exe_download_url(self, download_url):
+        """Retorna a URL correta para download (executável ou ZIP)"""
         try:
             # Se já é uma URL de executável, retornar como está
-            if zip_download_url.endswith('.exe'):
-                return zip_download_url
+            if download_url.endswith('.exe'):
+                print(f"Debug: URL é executável direto: {download_url}")
+                return download_url
 
-            # Se é URL do GitHub release, procurar pelo KenjiOverlay.exe
-            if 'github.com' in zip_download_url and 'releases' in zip_download_url:
-                # Extrair informações do release
-                parts = zip_download_url.split('/')
-                if 'download' in parts:
-                    # URL já é de download direto
-                    base_url = '/'.join(parts[:-1])  # Remove o arquivo ZIP
-                    exe_url = f"{base_url}/KenjiOverlay.exe"
-                    return exe_url
-
-            # Fallback: tentar consultar API do GitHub
+            # Verificar se existe executável individual na release
             with urlopen(self.api_url) as response:
                 data = json.loads(response.read().decode())
 
+            # Procurar por executável individual
             for asset in data['assets']:
                 if asset['name'] == 'KenjiOverlay.exe':
+                    print(f"Debug: Encontrado executável individual: {asset['browser_download_url']}")
                     return asset['browser_download_url']
 
-            # Se não encontrou executável, retornar URL original
-            return zip_download_url
+            # Se não encontrou executável individual, usar ZIP
+            print(f"Debug: Executável individual não encontrado, usando ZIP: {download_url}")
+            return download_url
 
         except Exception as e:
-            print(f"Aviso: Não foi possível encontrar URL do executável: {e}")
-            return zip_download_url
+            print(f"Aviso: Erro ao verificar assets: {e}")
+            return download_url
 
     def _traditional_update(self, download_url):
         """Método tradicional para script Python"""

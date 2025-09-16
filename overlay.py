@@ -21,24 +21,38 @@ def check_updates_on_startup():
     """Verifica updates em background no startup"""
     try:
         print("🔍 Verificando atualizações em background...")
+
+        # Verificar se temos acesso à internet
+        try:
+            from urllib.request import urlopen
+            urlopen('https://github.com', timeout=5)
+            print("✅ Conexão com internet OK")
+        except Exception as e:
+            print(f"❌ Sem conexão com internet: {e}")
+            return
+
         from src.updater import check_updates_silent
 
         # Aguardar 3 segundos após startup para verificar updates
+        print("⏳ Aguardando 3 segundos...")
         time.sleep(3)
 
+        print("📡 Consultando GitHub API...")
         has_update, new_version = check_updates_silent()
-        print(f"Debug: has_update={has_update}, new_version={new_version}")
+        print(f"🔍 Resultado: has_update={has_update}, new_version={new_version}")
 
         if has_update:
-            print(f"📦 NOVA VERSÃO DISPONÍVEL: v{new_version}")
+            print("="*60)
+            print(f"📦 🚨 NOVA VERSÃO DISPONÍVEL: v{new_version} 🚨")
             print("💡 Use Ctrl+U para atualizar")
-            print("="*50)
+            print("="*60)
         else:
-            print("✅ Aplicação está atualizada")
+            print("✅ Aplicação está atualizada (versão mais recente)")
 
     except Exception as e:
-        print(f"⚠️ Erro ao verificar updates: {e}")
+        print(f"⚠️ ERRO CRÍTICO ao verificar updates: {e}")
         import traceback
+        print("Traceback completo:")
         traceback.print_exc()
 
 def main():
