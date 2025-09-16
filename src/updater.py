@@ -1,0 +1,239 @@
+import json
+import os
+import sys
+import tempfile
+import zipfile
+import shutil
+from pathlib import Path
+from urllib.request import urlopen, urlretrieve
+import tkinter as tk
+from tkinter import messagebox, ttk
+import threading
+import subprocess
+
+from version import __version__, __github_repo__
+
+class AutoUpdater:
+    def __init__(self):
+        self.current_version = __version__
+        self.repo = __github_repo__
+        self.api_url = f"https://api.github.com/repos/{self.repo}/releases/latest"
+
+    def check_for_updates(self, silent=False):
+        """Verifica se há uma nova versão disponível"""
+        try:
+            with urlopen(self.api_url) as response:
+                data = json.loads(response.read().decode())
+
+            latest_version = data['tag_name'].lstrip('v')
+            download_url = None
+
+            # Procura por arquivo ZIP nos assets
+            for asset in data['assets']:
+                if asset['name'].endswith('.zip'):
+                    download_url = asset['browser_download_url']
+                    break
+
+            if self._is_newer_version(latest_version, self.current_version):
+                if not silent:
+                    return self._show_update_dialog(latest_version, download_url, data.get('body', ''))
+                return True, latest_version, download_url
+            else:
+                if not silent:
+                    messagebox.showinfo("Atualização", "Você já tem a versão mais recente!")
+                return False, None, None
+
+        except Exception as e:
+            if not silent:
+                messagebox.showerror("Erro", f"Erro ao verificar atualizações: {str(e)}")
+            return False, None, None
+
+    def _is_newer_version(self, latest, current):
+        """Compara versões (formato x.y.z)"""
+        def version_tuple(v):
+            return tuple(map(int, v.split('.')))
+        return version_tuple(latest) > version_tuple(current)
+
+    def _show_update_dialog(self, new_version, download_url, changelog):
+        """Mostra dialog perguntando se quer atualizar"""
+        root = tk.Tk()
+        root.title("Atualização Disponível")
+        root.geometry("500x400")
+        root.resizable(False, False)
+
+        # Centralizar janela
+        root.update_idletasks()
+        x = (root.winfo_screenwidth() // 2) - (500 // 2)
+        y = (root.winfo_screenheight() // 2) - (400 // 2)
+        root.geometry(f"500x400+{x}+{y}")
+
+        result = {'update': False}
+
+        # Frame principal
+        main_frame = ttk.Frame(root, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        # Título
+        title_label = ttk.Label(main_frame, text="🎯 Nova versão disponível!",
+                               font=("Segoe UI", 14, "bold"))
+        title_label.pack(pady=(0, 10))
+
+        # Info da versão
+        version_frame = ttk.Frame(main_frame)
+        version_frame.pack(fill=tk.X, pady=(0, 15))
+
+        ttk.Label(version_frame, text=f"Versão atual: {self.current_version}").pack(anchor=tk.W)
+        ttk.Label(version_frame, text=f"Nova versão: {new_version}",
+                 font=("Segoe UI", 10, "bold")).pack(anchor=tk.W)
+
+        # Changelog
+        ttk.Label(main_frame, text="O que há de novo:", font=("Segoe UI", 10, "bold")).pack(anchor=tk.W, pady=(10, 5))
+
+        text_frame = ttk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+
+        changelog_text = tk.Text(text_frame, wrap=tk.WORD, height=8)
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=changelog_text.yview)
+        changelog_text.configure(yscrollcommand=scrollbar.set)
+
+        changelog_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        changelog_text.insert(tk.END, changelog or "Sem informações de changelog disponíveis.")
+        changelog_text.configure(state=tk.DISABLED)
+
+        # Botões
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X)
+
+        def update_now():
+            result['update'] = True
+            root.destroy()
+
+        def later():
+            root.destroy()
+
+        ttk.Button(button_frame, text="Atualizar Agora", command=update_now).pack(side=tk.RIGHT, padx=(10, 0))
+        ttk.Button(button_frame, text="Mais Tarde", command=later).pack(side=tk.RIGHT)
+
+        root.mainloop()
+
+        if result['update']:
+            self._download_and_install(download_url)
+
+        return result['update']
+
+    def _download_and_install(self, download_url):
+        """Baixa e instala a atualização"""
+        progress_window = tk.Tk()
+        progress_window.title("Atualizando...")
+        progress_window.geometry("400x150")
+        progress_window.resizable(False, False)
+
+        # Centralizar
+        progress_window.update_idletasks()
+        x = (progress_window.winfo_screenwidth() // 2) - (400 // 2)
+        y = (progress_window.winfo_screenheight() // 2) - (150 // 2)
+        progress_window.geometry(f"400x150+{x}+{y}")
+
+        main_frame = ttk.Frame(progress_window, padding="20")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+
+        status_label = ttk.Label(main_frame, text="Baixando atualização...")
+        status_label.pack(pady=(0, 10))
+
+        progress = ttk.Progressbar(main_frame, mode='indeterminate')
+        progress.pack(fill=tk.X, pady=(0, 10))
+        progress.start()
+
+        def update_in_background():
+            try:
+                # Criar diretório temporário
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    zip_path = os.path.join(temp_dir, "update.zip")
+
+                    # Baixar arquivo
+                    urlretrieve(download_url, zip_path)
+
+                    status_label.config(text="Extraindo arquivos...")
+
+                    # Extrair ZIP
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        zip_ref.extractall(temp_dir)
+
+                    status_label.config(text="Instalando atualização...")
+
+                    # Encontrar pasta extraída
+                    extracted_folder = None
+                    for item in os.listdir(temp_dir):
+                        item_path = os.path.join(temp_dir, item)
+                        if os.path.isdir(item_path) and item != "__pycache__":
+                            extracted_folder = item_path
+                            break
+
+                    if extracted_folder:
+                        # Criar script de atualização
+                        self._create_update_script(extracted_folder)
+
+                        progress_window.after(0, lambda: [
+                            progress_window.destroy(),
+                            messagebox.showinfo("Sucesso", "Atualização baixada! O aplicativo será reiniciado."),
+                            self._restart_app()
+                        ])
+                    else:
+                        raise Exception("Estrutura de arquivo inválida na atualização")
+
+            except Exception as e:
+                progress_window.after(0, lambda: [
+                    progress_window.destroy(),
+                    messagebox.showerror("Erro", f"Erro durante a atualização: {str(e)}")
+                ])
+
+        # Executar download em thread separada
+        threading.Thread(target=update_in_background, daemon=True).start()
+        progress_window.mainloop()
+
+    def _create_update_script(self, source_folder):
+        """Cria script para copiar arquivos novos"""
+        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        script_content = f'''@echo off
+echo Atualizando Racing Telemetry...
+timeout /t 3 /nobreak >nul
+
+echo Copiando arquivos...
+xcopy /E /Y "{source_folder}\\*" "{current_dir}\\"
+
+echo Limpando arquivos temporários...
+del /q "%~f0"
+
+echo Iniciando aplicativo...
+cd /d "{current_dir}"
+python overlay.py
+
+exit
+'''
+
+        script_path = os.path.join(tempfile.gettempdir(), "update_racing_telemetry.bat")
+        with open(script_path, 'w', encoding='utf-8') as f:
+            f.write(script_content)
+
+        # Executar script
+        subprocess.Popen(script_path, shell=True)
+
+    def _restart_app(self):
+        """Reinicia o aplicativo"""
+        sys.exit(0)
+
+def check_updates_silent():
+    """Função para verificar updates silenciosamente no startup"""
+    updater = AutoUpdater()
+    has_update, version, url = updater.check_for_updates(silent=True)
+    return has_update, version
+
+def show_update_dialog():
+    """Função para mostrar dialog de atualização manualmente"""
+    updater = AutoUpdater()
+    updater.check_for_updates(silent=False)
+
+if __name__ == "__main__":
+    show_update_dialog()

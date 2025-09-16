@@ -1,0 +1,51 @@
+======================================
+    KENJI OVERLAY - PEDAIS EM TEMPO REAL
+======================================
+
+🏁 COMO USAR:
+
+1. BAIXAR E EXECUTAR:
+   - Faça download do arquivo "KenjiOverlay.exe"
+   - Clique duas vezes para executar
+   - NÃO PRECISA INSTALAR PYTHON OU NADA!
+
+2. CONECTAR PEDAIS:
+   - Conecte seu volante/pedais no PC
+   - Certifique-se que funcionam no Windows
+   - O overlay detecta automaticamente (G920, etc)
+
+3. CONTROLES:
+   - V = Mostrar/esconder overlay
+   - ARRASTE = Mover overlay pela tela
+   - ESC = Fechar overlay
+
+4. O QUE VOCÊ VERÁ:
+   - Gráfico com linhas verde (acelerador) e vermelha (freio)
+   - Barras verticais mostrando força dos pedais
+   - Status "Pedais Conectados" (verde) quando funcionar
+
+======================================
+
+💡 DICAS:
+
+- Use V para esconder quando procurar partidas
+- Use V para mostrar durante corridas
+- O overlay fica sempre por cima do jogo
+- Funciona em qualquer jogo de corrida
+
+======================================
+
+❓ PROBLEMAS:
+
+- Se não detectar pedais: Verifique se funcionam em outros jogos
+- Se não aparecer: Execute como administrador
+- Se fechar sozinho: Verifique antivírus
+
+======================================
+
+✅ TESTADO COM:
+- Logitech G920
+- Windows 10/11
+- Jogos em fullscreen
+
+======================================

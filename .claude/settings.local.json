@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "WebSearch",
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Read(//c/Program Files (x86)/Steam/steamapps/common/Le Mans Ultimate/UserData/player/**)",
+      "Bash(rm:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(pip install:*)",
+      "Bash(pyinstaller:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
