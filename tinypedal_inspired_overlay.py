@@ -265,15 +265,28 @@ class TinyPedalOverlay(QWidget):
         print("TINYPEDAL-INSPIRED OVERLAY")
         print("=" * 60)
 
-        # Mostrar versão no console
+        # Mostrar versão no console (compatível com PyInstaller)
         try:
             import sys
             import os
-            sys.path.insert(0, os.path.dirname(__file__))
+
+            # Detectar se está rodando via PyInstaller
+            if getattr(sys, 'frozen', False):
+                # Rodando como executável
+                bundle_dir = sys._MEIPASS
+            else:
+                # Rodando como script Python
+                bundle_dir = os.path.dirname(__file__)
+
+            sys.path.insert(0, bundle_dir)
             from version import __version__, __app_name__
             print(f"{__app_name__} v{__version__}")
+            self.current_version = __version__
+            self.app_name = __app_name__
         except ImportError:
             print("Racing Telemetry Pedals v1.0.0")
+            self.current_version = "1.0.0"
+            self.app_name = "Racing Telemetry Pedals"
 
         print(f"Usando: {PYSIDE_VERSION}")
         print("Baseado na analise do projeto TinyPedal (que realmente funciona)")
@@ -437,16 +450,8 @@ class TinyPedalOverlay(QWidget):
         layout.addLayout(main_layout)
 
 
-        # Instruções com versão
-        try:
-            import sys
-            import os
-            sys.path.insert(0, os.path.dirname(__file__))
-            from version import __version__
-            version_text = f"v{__version__}"
-        except ImportError:
-            version_text = "v1.0.0"
-
+        # Instruções com versão (usar versão já carregada)
+        version_text = f"v{getattr(self, 'current_version', '1.0.0')}"
         instructions = QLabel(f"ARRASTE para mover | V = Toggle | Ctrl+U = Update | ESC = Fechar | {version_text}")
         instructions.setFont(QFont("Arial", 8))
         instructions.setStyleSheet("color: #FFC800;")
@@ -605,17 +610,26 @@ class TinyPedalOverlay(QWidget):
     def update_version_display(self):
         """Atualiza a exibição da versão na interface"""
         try:
-            # Reimportar para pegar nova versão
+            # Reimportar para pegar nova versão (compatível com PyInstaller)
             import sys
             import os
             import importlib
+
+            # Detectar se está rodando via PyInstaller
+            if getattr(sys, 'frozen', False):
+                bundle_dir = sys._MEIPASS
+            else:
+                bundle_dir = os.path.dirname(__file__)
 
             # Recarregar módulo de versão
             if 'version' in sys.modules:
                 importlib.reload(sys.modules['version'])
 
-            sys.path.insert(0, os.path.dirname(__file__))
+            sys.path.insert(0, bundle_dir)
             from version import __version__
+
+            # Atualizar versão armazenada
+            self.current_version = __version__
 
             # Encontrar o widget de instruções e atualizar
             for child in self.findChildren(QLabel):

@@ -29,7 +29,7 @@ def update_version_file(new_version):
     )
 
     version_file.write_text(new_content, encoding='utf-8')
-    print(f"✅ Version atualizada para {new_version}")
+    print(f"Version atualizada para {new_version}")
     return True
 
 def create_release_zip(version):
@@ -45,7 +45,10 @@ def create_release_zip(version):
         '.DS_Store',
         'Thumbs.db',
         'create_release.py',
-        'release_*.zip'
+        'release_*.zip',
+        'build',
+        '*.spec',
+        'KenjiOverlay_old.exe'
     }
 
     def should_exclude(path):
@@ -56,38 +59,51 @@ def create_release_zip(version):
         return False
 
     zip_filename = f"racing-telemetry-v{version}.zip"
-    temp_dir = Path(tempfile.mkdtemp())
-    release_dir = temp_dir / f"racing-telemetry-{version}"
 
     try:
-        # Copiar arquivos para diretório temporário
+        # Criar ZIP diretamente na raiz (para facilitar substituição)
         current_dir = Path.cwd()
-        release_dir.mkdir()
 
-        for item in current_dir.rglob('*'):
-            if should_exclude(item):
-                continue
-
-            relative_path = item.relative_to(current_dir)
-            target_path = release_dir / relative_path
-
-            if item.is_file():
-                target_path.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(item, target_path)
-
-        # Criar ZIP
         with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in release_dir.rglob('*'):
-                if file_path.is_file():
-                    arcname = file_path.relative_to(release_dir)
-                    zipf.write(file_path, arcname)
+            # Adicionar executáveis (PRIORITÁRIO para auto-update)
+            exe_files = ['dist/KenjiOverlay.exe', 'dist/updater.exe']
+            for exe_file in exe_files:
+                exe_path = current_dir / exe_file
+                if exe_path.exists():
+                    # Adicionar executáveis na raiz do ZIP
+                    zipf.write(exe_path, exe_path.name)
+                    print(f"  Incluído: {exe_path.name}")
 
-        print(f"✅ Release ZIP criado: {zip_filename}")
+            # Adicionar arquivos essenciais
+            essential_files = [
+                'version.py',
+                'overlay.py',
+                'tinypedal_inspired_overlay.py',
+                'requirements.txt',
+                'README.md'
+            ]
+
+            for file_name in essential_files:
+                file_path = current_dir / file_name
+                if file_path.exists():
+                    zipf.write(file_path, file_name)
+                    print(f"  Incluído: {file_name}")
+
+            # Adicionar pasta src
+            src_dir = current_dir / 'src'
+            if src_dir.exists():
+                for item in src_dir.rglob('*'):
+                    if item.is_file() and not should_exclude(item):
+                        arcname = item.relative_to(current_dir)
+                        zipf.write(item, arcname)
+                        print(f"  Incluído: {arcname}")
+
+        print(f"Release ZIP criado: {zip_filename}")
         return zip_filename
 
-    finally:
-        # Limpar diretório temporário
-        shutil.rmtree(temp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Erro ao criar ZIP: {e}")
+        return None
 
 def print_github_instructions(version, zip_file, changelog):
     """Imprime instruções para criar release no GitHub"""
@@ -95,7 +111,7 @@ def print_github_instructions(version, zip_file, changelog):
     print("🚀 INSTRUÇÕES PARA CRIAR RELEASE NO GITHUB")
     print("="*60)
     print()
-    print("1. Vá para: https://github.com/SEU-USUARIO/game-telemetry/releases/new")
+    print("1. Vá para: https://github.com/Kenjiisok/game-telemetry/releases/new")
     print()
     print(f"2. Tag version: v{version}")
     print(f"   Release title: Racing Telemetry v{version}")
@@ -105,13 +121,18 @@ def print_github_instructions(version, zip_file, changelog):
     print(changelog)
     print("-" * 30)
     print()
-    print(f"4. Faça upload do arquivo: {zip_file}")
+    print("4. Faça upload dos arquivos:")
+    print(f"   - {zip_file} (pacote completo)")
+    print("   - dist/KenjiOverlay.exe (para auto-update)")
+    print("   - dist/updater.exe (para auto-update)")
     print()
     print("5. Marque como 'Latest release' e clique 'Publish release'")
     print()
     print("="*60)
-    print("⚠️  IMPORTANTE: Atualize o arquivo version.py com o nome do seu repositório!")
-    print("    Edite a linha: __github_repo__ = \"seu-usuario/game-telemetry\"")
+    print("AUTO-UPDATE:")
+    print("   - Usuários com executável serão notificados automaticamente")
+    print("   - Updates baixam apenas o KenjiOverlay.exe (mais rápido)")
+    print("   - Substitui o executável e reinicia automaticamente")
     print("="*60)
 
 def main():
@@ -128,8 +149,8 @@ def main():
         print("❌ Formato de versão inválido! Use: x.y.z (ex: 1.0.0)")
         return
 
-    print(f"📦 Criando release v{new_version}")
-    print(f"📝 Changelog: {changelog}")
+    print(f"Criando release v{new_version}")
+    print(f"Changelog: {changelog}")
     print()
 
     # Atualizar versão

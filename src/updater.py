@@ -4,6 +4,7 @@ import sys
 import tempfile
 import zipfile
 import shutil
+import time
 from pathlib import Path
 from urllib.request import urlopen, urlretrieve
 import tkinter as tk
@@ -28,11 +29,18 @@ class AutoUpdater:
             latest_version = data['tag_name'].lstrip('v')
             download_url = None
 
-            # Procura por arquivo ZIP nos assets
+            # Procurar primeiro por executável (prioridade para auto-update)
             for asset in data['assets']:
-                if asset['name'].endswith('.zip'):
+                if asset['name'] == 'KenjiOverlay.exe':
                     download_url = asset['browser_download_url']
                     break
+
+            # Se não encontrou executável, procurar por ZIP
+            if not download_url:
+                for asset in data['assets']:
+                    if asset['name'].endswith('.zip'):
+                        download_url = asset['browser_download_url']
+                        break
 
             if self._is_newer_version(latest_version, self.current_version):
                 if not silent:
@@ -125,6 +133,90 @@ class AutoUpdater:
 
     def _download_and_install(self, download_url):
         """Baixa e instala a atualização"""
+        # Detectar se está rodando como executável
+        if getattr(sys, 'frozen', False):
+            # Rodando como executável - usar updater separado
+            self._use_external_updater(download_url)
+        else:
+            # Rodando como script Python - método tradicional
+            self._traditional_update(download_url)
+
+    def _use_external_updater(self, download_url):
+        """Usa o updater.exe separado para atualizar"""
+        try:
+            import sys
+
+            # Path do executável atual
+            current_exe = sys.executable
+
+            # Path do updater (deve estar na mesma pasta)
+            updater_path = os.path.join(os.path.dirname(current_exe), "updater.exe")
+
+            if not os.path.exists(updater_path):
+                messagebox.showerror("Erro", "Arquivo updater.exe não encontrado!")
+                return
+
+            # Nome do backup
+            backup_name = f"KenjiOverlay_backup_{int(time.time())}.exe"
+
+            # Mostrar mensagem
+            messagebox.showinfo("Atualização",
+                "O updater será executado.\n"
+                "O aplicativo será fechado e reiniciado automaticamente.")
+
+            # Encontrar URL do executável específico
+            exe_download_url = self._get_exe_download_url(download_url)
+
+            # Executar updater
+            subprocess.Popen([
+                updater_path,
+                exe_download_url or download_url,
+                current_exe,
+                backup_name
+            ])
+
+            # Fechar aplicativo atual
+            import time
+            time.sleep(1)
+            sys.exit(0)
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Erro ao executar updater: {str(e)}")
+
+    def _get_exe_download_url(self, zip_download_url):
+        """Encontra a URL específica do executável no GitHub release"""
+        try:
+            # Se já é uma URL de executável, retornar como está
+            if zip_download_url.endswith('.exe'):
+                return zip_download_url
+
+            # Se é URL do GitHub release, procurar pelo KenjiOverlay.exe
+            if 'github.com' in zip_download_url and 'releases' in zip_download_url:
+                # Extrair informações do release
+                parts = zip_download_url.split('/')
+                if 'download' in parts:
+                    # URL já é de download direto
+                    base_url = '/'.join(parts[:-1])  # Remove o arquivo ZIP
+                    exe_url = f"{base_url}/KenjiOverlay.exe"
+                    return exe_url
+
+            # Fallback: tentar consultar API do GitHub
+            with urlopen(self.api_url) as response:
+                data = json.loads(response.read().decode())
+
+            for asset in data['assets']:
+                if asset['name'] == 'KenjiOverlay.exe':
+                    return asset['browser_download_url']
+
+            # Se não encontrou executável, retornar URL original
+            return zip_download_url
+
+        except Exception as e:
+            print(f"Aviso: Não foi possível encontrar URL do executável: {e}")
+            return zip_download_url
+
+    def _traditional_update(self, download_url):
+        """Método tradicional para script Python"""
         progress_window = tk.Tk()
         progress_window.title("Atualizando...")
         progress_window.geometry("400x150")
@@ -172,13 +264,21 @@ class AutoUpdater:
                             break
 
                     if extracted_folder:
-                        # Criar script de atualização
-                        self._create_update_script(extracted_folder)
+                        # Atualizar arquivos Python
+                        current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+                        # Copiar arquivos atualizados
+                        import shutil
+                        for item in os.listdir(extracted_folder):
+                            src = os.path.join(extracted_folder, item)
+                            dst = os.path.join(current_dir, item)
+
+                            if os.path.isfile(src) and src.endswith('.py'):
+                                shutil.copy2(src, dst)
 
                         progress_window.after(0, lambda: [
                             progress_window.destroy(),
-                            messagebox.showinfo("Sucesso", "Atualização baixada! O aplicativo será reiniciado."),
-                            self._restart_app()
+                            messagebox.showinfo("Sucesso", "Atualização instalada! Reinicie o aplicativo."),
                         ])
                     else:
                         raise Exception("Estrutura de arquivo inválida na atualização")
