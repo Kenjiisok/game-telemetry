@@ -20,19 +20,26 @@ except ImportError:
 def check_updates_on_startup():
     """Verifica updates em background no startup"""
     try:
+        print("🔍 Verificando atualizações em background...")
         from src.updater import check_updates_silent
 
         # Aguardar 3 segundos após startup para verificar updates
         time.sleep(3)
 
         has_update, new_version = check_updates_silent()
+        print(f"Debug: has_update={has_update}, new_version={new_version}")
+
         if has_update:
-            print(f"📦 Nova versão disponível: v{new_version}")
+            print(f"📦 NOVA VERSÃO DISPONÍVEL: v{new_version}")
             print("💡 Use Ctrl+U para atualizar")
+            print("="*50)
+        else:
+            print("✅ Aplicação está atualizada")
 
     except Exception as e:
-        # Falha silenciosa - não interromper o app por causa de update
-        pass
+        print(f"⚠️ Erro ao verificar updates: {e}")
+        import traceback
+        traceback.print_exc()
 
 def main():
     """Função principal"""

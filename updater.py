@@ -106,12 +106,18 @@ class StandaloneUpdater:
                     for file in files:
                         if file.endswith('.exe') and 'KenjiOverlay' in file:
                             new_exe = os.path.join(root, file)
+                            print(f"Debug: Encontrou executável: {file}")
                             break
                     if new_exe:
                         break
 
                 if not new_exe:
-                    raise Exception("Executável não encontrado no arquivo de atualização")
+                    # Listar todos os arquivos para debug
+                    print("Debug: Arquivos encontrados no ZIP:")
+                    for root, dirs, files in os.walk(extract_dir):
+                        for file in files:
+                            print(f"  - {file}")
+                    raise Exception("Executável KenjiOverlay.exe não encontrado no arquivo de atualização")
             else:
                 # Baixar executável diretamente
                 new_exe = os.path.join(temp_dir, "KenjiOverlay.exe")

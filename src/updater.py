@@ -5,12 +5,12 @@ import tempfile
 import zipfile
 import shutil
 import time
+import subprocess
+import threading
 from pathlib import Path
 from urllib.request import urlopen, urlretrieve
 import tkinter as tk
 from tkinter import messagebox, ttk
-import threading
-import subprocess
 
 from version import __version__, __github_repo__
 
@@ -40,6 +40,7 @@ class AutoUpdater:
                 for asset in data['assets']:
                     if asset['name'].endswith('.zip'):
                         download_url = asset['browser_download_url']
+                        print(f"Debug: Usando ZIP para update: {asset['name']}")
                         break
 
             if self._is_newer_version(latest_version, self.current_version):
@@ -175,8 +176,7 @@ class AutoUpdater:
                 backup_name
             ])
 
-            # Fechar aplicativo atual
-            import time
+            # Fechar aplicativo atual após delay
             time.sleep(1)
             sys.exit(0)
 
