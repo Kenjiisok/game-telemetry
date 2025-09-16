@@ -1,141 +1,119 @@
-# 🏎️ Racing Telemetry Pedals
+# Racing Telemetry Pedals
 
-Aplicação em tempo real para monitoramento de telemetria dos pedais de aceleração e freio para Le Mans Ultimate e F1.
+Professional real-time pedal telemetry overlay for Le Mans Ultimate and F1 games.
 
-## 🎯 Características Principais
+## Features
 
-- ✅ **Le Mans Ultimate** - Suporte nativo via UDP
-- ✅ **F1 2023/2024** - Telemetria completa dos pedais
-- ✅ **Interface moderna** - Barras e gráficos em tempo real
-- ✅ **Histórico visual** - Últimos 10 segundos de dados
-- ✅ **Auto-detecção** - Detecta automaticamente o jogo
-- ✅ **Performance otimizada** - 60 FPS fluidos
+- **Le Mans Ultimate** - Native UDP support
+- **F1 2023/2024** - Complete pedal telemetry
+- **Modern interface** - Real-time bars and graphs
+- **Visual history** - Last 10 seconds of data
+- **Auto-detection** - Automatically detects your game
+- **Optimized performance** - Smooth 60 FPS
+- **Auto-updates** - Automatic update system
 
-## 🚀 Como Usar
+## Installation
 
-### 1. Instalar dependências
+### Quick Start (Recommended)
 
-```bash
-pip install -r requirements.txt
-```
+1. Download the latest `KenjiOverlay.exe` from [Releases](https://github.com/Kenjiisok/game-telemetry/releases)
+2. Run the executable
+3. Configure your game (see below)
+4. Start racing!
 
-### 2. Executar
+### From Source
 
-**Overlay Compacto (Recomendado para Gaming):**
+1. Install Python 3.9 or higher
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Run the overlay:
+   ```bash
+   python overlay.py
+   ```
 
-```bash
-python overlay.py
-```
+## Game Configuration
 
-**Interface Completa:**
+### Le Mans Ultimate
 
-```bash
-python src/main.py
-```
+**IMPORTANT: Requires plugin installation**
 
-### 3. Configurar o jogo
+1. Download `rFactor2SharedMemoryMapPlugin64.dll` from the rFactor2 SDK
+2. Copy it to `Le Mans Ultimate\Plugins\`
+3. Edit `CustomPluginVariables.JSON` to enable the plugin
+4. **Set game to BORDERLESS mode** (not fullscreen)
+5. Restart the game
 
-**Le Mans Ultimate:**
-⚠️ **REQUER PLUGIN** - Veja instruções detalhadas em [SETUP_LMU.md](SETUP_LMU.md)
+### F1 2023/2024
 
-1. Baixe `rFactor2SharedMemoryMapPlugin64.dll`
-2. Copie para `Le Mans Ultimate\Plugins\`
-3. Edite `CustomPluginVariables.JSON`
-4. **Configure o jogo em modo BORDERLESS** (não fullscreen)
-5. Reinicie o jogo
-
-**F1 2023/2024:**
-
-1. Settings > Telemetry Settings
-2. UDP Telemetry: ON
+1. Go to Settings > Telemetry Settings
+2. Set UDP Telemetry: ON
 3. IP Address: 127.0.0.1
 4. Port: 20777
 5. Send Rate: 60Hz
 
-### 4. Correr!
+## Usage
 
-- Entre em qualquer sessão (treino, qualifying, corrida)
-- Os dados aparecerão automaticamente na interface
+### Controls
 
-## 🎮 Controles
+- **Mouse drag**: Move overlay window
+- **V**: Toggle visibility
+- **Ctrl+U**: Check for updates
+- **ESC**: Exit application
 
-**Interface Completa:**
+### Interface
 
-- **ESC**: Sair da aplicação
-- **SPACE**: Reset do histórico de dados
+- **Pedal bars**: Show current throttle/brake percentage
+- **History graph**: Last 10 seconds of telemetry data
+- **Connection status**: Shows if receiving data
+- **Packet counter**: Performance monitoring
 
-**Overlay Compacto:**
+## Updates
 
-- **Mouse**: Arrastar para mover overlay
-- **F11**: Toggle always on top
-- **Ctrl+D**: Toggle transparência
-- **Ctrl+U**: Verificar atualizações
-- **ESC**: Sair
+The application includes automatic update checking:
 
-## 📊 Interface
+- **Automatic check**: On startup
+- **Manual check**: Press Ctrl+U
+- **Notifications**: Windows toast notifications when updates are available
+- **One-click install**: Automated download and installation
 
-- **Barras dos pedais**: Mostram % atual de throttle/brake
-- **Gráfico histórico**: Últimos 10 segundos de telemetria
-- **Status da conexão**: Indica se está recebendo dados
-- **Contador de packets**: Para monitorar performance
+## Troubleshooting
 
-## 🔄 Atualizações Automáticas
+### No data appearing
 
-O projeto possui sistema de auto-update integrado:
+1. Check telemetry is enabled in game settings
+2. Verify correct port and IP configuration
+3. **For LMU**: Ensure game is in BORDERLESS mode
+4. **For LMU**: Verify plugin is installed correctly
+5. Temporarily disable firewall
+6. Restart game after configuration
 
-- **Verificação automática**: No startup da aplicação
-- **Verificação manual**: Use **Ctrl+U** no overlay
-- **Download automático**: Interface gráfica para baixar novas versões
-- **Instalação**: Processo automatizado com backup
+### Performance issues
 
-### Para Desenvolvedores
+- Reduce game telemetry send rate to 30Hz
+- Close other resource-intensive programs
+- Ensure game is running in borderless mode
 
-Para criar um novo release:
+## Supported Games
 
-```bash
-# Atualizar versão e criar release
-python create_release.py 1.1.0 "Descrição das mudanças"
+| Game             | Method                 | Status    |
+| ---------------- | ---------------------- | --------- |
+| Le Mans Ultimate | Shared Memory + Plugin | Supported |
+| F1 2024          | UDP (port 20777)       | Supported |
+| F1 2023          | UDP (port 20777)       | Supported |
 
-# Seguir instruções no terminal para publicar no GitHub
-```
+## System Requirements
 
-⚠️ **Importante**: Edite `version.py` e configure seu repositório GitHub antes de usar.
+- Windows 10/11
+- .NET Framework 4.8 or higher
+- 50MB free disk space
+- Active internet connection for updates
 
-## 🔧 Configuração Avançada
+## Support
 
-Edite `configs/games_config.py` para ajustar portas ou adicionar novos jogos.
-
-## ❗ Troubleshooting
-
-**Sem dados aparecendo:**
-
-1. Verifique se a telemetria está habilitada no jogo
-2. Confirme porta e IP corretos
-3. **Para LMU: Certifique-se que o jogo está em modo BORDERLESS**
-4. **Para LMU: Verifique se o plugin `rFactor2SharedMemoryMapPlugin64.dll` está instalado**
-5. Desabilite firewall temporariamente
-6. Reinicie o jogo após configurar
-
-**Performance baixa:**
-
-- Reduza send rate do jogo para 30Hz
-- Feche outros programas pesados
-
-## 🎯 Jogos Suportados
-
-| Jogo             | Método                 | Status      |
-| ---------------- | ---------------------- | ----------- |
-| Le Mans Ultimate | Shared Memory + Plugin | ✅ Completo |
-| F1 2024          | UDP (porta 20777)      | ✅ Completo |
-| F1 2023          | UDP (porta 20777)      | ✅ Completo |
-
-## 🚧 Próximas Features
-
-- [ ] Suporte para Assetto Corsa Competizione
-- [ ] Gravação de sessões
-- [ ] Análise de consistência
-- [ ] Export para MoTeC i2
+For issues and feature requests, please visit the [GitHub Issues](https://github.com/Kenjiisok/game-telemetry/issues) page.
 
 ---
 
-Desenvolvido com ❤️ para a comunidade sim racing
+Created for the sim racing community

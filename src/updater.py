@@ -83,7 +83,7 @@ class AutoUpdater:
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Título
-        title_label = ttk.Label(main_frame, text="🎯 Nova versão disponível!",
+        title_label = ttk.Label(main_frame, text="Nova versao disponivel!",
                                font=("Segoe UI", 14, "bold"))
         title_label.pack(pady=(0, 10))
 

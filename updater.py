@@ -202,10 +202,10 @@ class StandaloneUpdater:
 
             # 3. Reiniciar aplicativo
             if self.restart_application():
-                self.update_status("✅ Atualização concluída!", "Aplicativo reiniciado com sucesso")
+                self.update_status("Atualizacao concluida!", "Aplicativo reiniciado com sucesso")
                 time.sleep(2)
             else:
-                self.update_status("⚠️ Atualização concluída", "Inicie o aplicativo manualmente")
+                self.update_status("Atualizacao concluida", "Inicie o aplicativo manualmente")
                 time.sleep(3)
 
             return True

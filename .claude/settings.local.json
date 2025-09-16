@@ -10,7 +10,18 @@
       "Bash(find:*)",
       "WebFetch(domain:github.com)",
       "Bash(pip install:*)",
-      "Bash(pyinstaller:*)"
+      "Bash(pyinstaller:*)",
+      "Bash(move KenjiOverlay.exe KenjiOverlay_old.exe)",
+      "Bash(ren:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(distKenjiOverlay.exe:*)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(start KenjiOverlay.exe)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []
