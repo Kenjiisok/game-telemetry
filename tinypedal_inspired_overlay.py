@@ -264,6 +264,17 @@ class TinyPedalOverlay(QWidget):
 
         print("TINYPEDAL-INSPIRED OVERLAY")
         print("=" * 60)
+
+        # Mostrar versão no console
+        try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(__file__))
+            from version import __version__, __app_name__
+            print(f"{__app_name__} v{__version__}")
+        except ImportError:
+            print("Racing Telemetry Pedals v1.0.0")
+
         print(f"Usando: {PYSIDE_VERSION}")
         print("Baseado na analise do projeto TinyPedal (que realmente funciona)")
 
@@ -426,8 +437,17 @@ class TinyPedalOverlay(QWidget):
         layout.addLayout(main_layout)
 
 
-        # Instruções
-        instructions = QLabel("ARRASTE para mover | V = Toggle | ESC = Fechar")
+        # Instruções com versão
+        try:
+            import sys
+            import os
+            sys.path.insert(0, os.path.dirname(__file__))
+            from version import __version__
+            version_text = f"v{__version__}"
+        except ImportError:
+            version_text = "v1.0.0"
+
+        instructions = QLabel(f"ARRASTE para mover | V = Toggle | Ctrl+U = Update | ESC = Fechar | {version_text}")
         instructions.setFont(QFont("Arial", 8))
         instructions.setStyleSheet("color: #FFC800;")
         instructions.setAlignment(Qt.AlignCenter)
@@ -572,10 +592,39 @@ class TinyPedalOverlay(QWidget):
             from src.updater import show_update_dialog
 
             # Executar em thread separada para não bloquear UI
+            def update_with_callback():
+                show_update_dialog()
+                # Após update, atualizar a versão exibida
+                self.update_version_display()
+
             import threading
-            threading.Thread(target=show_update_dialog, daemon=True).start()
+            threading.Thread(target=update_with_callback, daemon=True).start()
         except Exception as e:
             print(f"❌ Erro ao verificar atualizações: {e}")
+
+    def update_version_display(self):
+        """Atualiza a exibição da versão na interface"""
+        try:
+            # Reimportar para pegar nova versão
+            import sys
+            import os
+            import importlib
+
+            # Recarregar módulo de versão
+            if 'version' in sys.modules:
+                importlib.reload(sys.modules['version'])
+
+            sys.path.insert(0, os.path.dirname(__file__))
+            from version import __version__
+
+            # Encontrar o widget de instruções e atualizar
+            for child in self.findChildren(QLabel):
+                if "ARRASTE para mover" in child.text():
+                    child.setText(f"ARRASTE para mover | V = Toggle | Ctrl+U = Update | ESC = Fechar | v{__version__}")
+                    print(f"✅ Versão atualizada na interface: v{__version__}")
+                    break
+        except Exception as e:
+            print(f"❌ Erro ao atualizar versão na interface: {e}")
 
     def closeEvent(self, event):
         """Cleanup ao fechar"""
