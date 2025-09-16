@@ -44,10 +44,15 @@ def check_updates_on_startup():
 def main():
     """Função principal"""
     print("🚀 Iniciando Racing Telemetry...")
+    print(f"Debug: Executando como executável: {getattr(sys, 'frozen', False)}")
 
-    # Verificar updates em background
-    update_thread = threading.Thread(target=check_updates_on_startup, daemon=True)
-    update_thread.start()
+    # Verificar updates em background APENAS se executável
+    if getattr(sys, 'frozen', False):
+        print("⚡ Executável detectado - iniciando verificação de updates...")
+        update_thread = threading.Thread(target=check_updates_on_startup, daemon=True)
+        update_thread.start()
+    else:
+        print("🐍 Script Python detectado - pulando verificação de updates")
 
     # Importar e executar o overlay principal
     try:
@@ -67,6 +72,8 @@ def main():
         sys.exit(1)
     except Exception as e:
         print(f"❌ Erro ao iniciar overlay: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 if __name__ == "__main__":

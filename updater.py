@@ -15,7 +15,7 @@ from urllib.request import urlretrieve
 import tkinter as tk
 from tkinter import messagebox, ttk
 import threading
-import psutil
+# import psutil  # Removido - causava erro no PyInstaller
 
 class StandaloneUpdater:
     def __init__(self, download_url, target_exe, backup_name):
@@ -56,22 +56,21 @@ class StandaloneUpdater:
         self.root.update()
 
     def wait_for_process_end(self, process_name, timeout=30):
-        """Aguarda um processo específico terminar"""
+        """Aguarda um processo específico terminar (sem psutil)"""
         self.update_status("Aguardando aplicativo fechar...", f"Processo: {process_name}")
 
         start_time = time.time()
         while time.time() - start_time < timeout:
-            # Verificar se processo ainda existe
-            process_found = False
-            for proc in psutil.process_iter(['name']):
-                try:
-                    if proc.info['name'].lower() == process_name.lower():
-                        process_found = True
-                        break
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    continue
-
-            if not process_found:
+            # Usar tasklist do Windows para verificar processo
+            try:
+                import subprocess
+                result = subprocess.run(['tasklist', '/FI', f'IMAGENAME eq {process_name}'],
+                                      capture_output=True, text=True, shell=True)
+                if process_name.lower() not in result.stdout.lower():
+                    return True
+            except:
+                # Se tasklist falhou, aguardar tempo fixo
+                time.sleep(2)
                 return True
 
             time.sleep(1)
@@ -151,16 +150,13 @@ class StandaloneUpdater:
             # Aguardar processo terminar
             process_name = self.target_exe.name
             if not self.wait_for_process_end(process_name):
-                # Tentar forçar fechamento
-                for proc in psutil.process_iter(['name', 'pid']):
-                    try:
-                        if proc.info['name'].lower() == process_name.lower():
-                            proc.terminate()
-                            time.sleep(2)
-                            if proc.is_running():
-                                proc.kill()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        continue
+                # Tentar forçar fechamento com taskkill
+                try:
+                    subprocess.run(['taskkill', '/F', '/IM', process_name],
+                                 capture_output=True, shell=True)
+                    time.sleep(2)
+                except:
+                    pass
 
             # Aguardar um pouco mais para garantir
             time.sleep(2)
