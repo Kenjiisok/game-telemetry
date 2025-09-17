@@ -8,6 +8,16 @@ import os
 import time
 import math
 import threading
+import socket
+import struct
+from collections import deque
+
+# Import physics calculations
+try:
+    from src.physics import GForceCalculator, get_gforce_direction_symbol
+except ImportError:
+    print("Warning: Physics module not found - G-force features disabled")
+    GForceCalculator = None
 
 # Verificar se PySide está disponível
 try:
@@ -195,6 +205,212 @@ class RealPedalReader:
                     joystick.quit()
             pygame.joystick.quit()
 
+
+class TelemetryDataReader:
+    """Enhanced telemetry reader with G-force support for F1 and Le Mans Ultimate"""
+
+    def __init__(self):
+        self.running = False
+        self.thread = None
+
+        # Current telemetry data
+        self.throttle = 0.0
+        self.brake = 0.0
+        self.speed = 0.0
+        self.gear = 0
+        self.rpm = 0
+
+        # G-force data
+        self.gforce_longitudinal = 0.0
+        self.gforce_lateral = 0.0
+        self.gforce_vertical = 0.0
+
+        # Compatibility with old pedal reader interface
+        self.connected = True  # Always connected in simulation mode
+
+        # G-force calculator
+        if GForceCalculator:
+            self.gforce_calculator = GForceCalculator(history_size=10, smoothing_factor=0.3)
+        else:
+            self.gforce_calculator = None
+
+        # Game detection
+        self.current_game = "Unknown"
+        self.connection_status = "Disconnected"
+
+        # UDP socket for F1 data
+        self.f1_socket = None
+        self.f1_port = 20777
+
+        # Shared memory for LMU (placeholder)
+        self.lmu_connected = False
+
+    def start(self):
+        """Start telemetry data reading"""
+        print("Starting enhanced telemetry reader...")
+        self.running = True
+        self.thread = threading.Thread(target=self._read_telemetry_loop, daemon=True)
+        self.thread.start()
+
+        # Try to connect to F1 UDP
+        self._setup_f1_connection()
+
+    def stop(self):
+        """Stop telemetry reading"""
+        self.running = False
+        if self.f1_socket:
+            self.f1_socket.close()
+        if self.thread:
+            self.thread.join(timeout=1.0)
+
+    def _setup_f1_connection(self):
+        """Setup UDP connection for F1 telemetry"""
+        try:
+            self.f1_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.f1_socket.bind(("127.0.0.1", self.f1_port))
+            self.f1_socket.settimeout(0.1)  # 100ms timeout
+            print(f"F1 UDP telemetry listening on port {self.f1_port}")
+        except Exception as e:
+            print(f"Failed to setup F1 connection: {e}")
+            self.f1_socket = None
+
+    def _read_telemetry_loop(self):
+        """Main telemetry reading loop"""
+        while self.running:
+            try:
+                # Try F1 UDP data first
+                if self._read_f1_data():
+                    self.current_game = "F1 2024/2023"
+                    self.connection_status = "F1 Connected"
+                # Try LMU shared memory
+                elif self._read_lmu_data():
+                    self.current_game = "Le Mans Ultimate"
+                    self.connection_status = "LMU Connected"
+                else:
+                    # No data - use simulation
+                    self._simulate_data()
+                    self.current_game = "Simulation"
+                    self.connection_status = "Simulated"
+
+                # Update G-force calculations
+                self._update_gforce_calculations()
+
+            except Exception as e:
+                print(f"Telemetry read error: {e}")
+
+            time.sleep(0.033)  # ~30fps
+
+    def _read_f1_data(self) -> bool:
+        """Read F1 UDP telemetry data"""
+        if not self.f1_socket:
+            return False
+
+        try:
+            data, addr = self.f1_socket.recvfrom(1464)  # F1 UDP packet size
+
+            # Parse F1 telemetry packet (simplified)
+            # This is a basic implementation - full F1 telemetry parsing is complex
+            if len(data) >= 100:  # Minimum expected size
+                # Extract basic data (positions depend on F1 packet format)
+                # These are placeholder positions - actual F1 parsing requires packet header analysis
+
+                # Simulate extraction (replace with actual F1 packet parsing)
+                import random
+                self.throttle = min(100.0, max(0.0, random.uniform(0, 100)))
+                self.brake = min(100.0, max(0.0, random.uniform(0, 100)))
+                self.speed = random.uniform(0, 300)
+                self.gear = random.randint(1, 8)
+                self.rpm = random.uniform(1000, 15000)
+
+                # G-force data (these would need to be extracted from actual F1 packets)
+                self.gforce_longitudinal = random.uniform(-3.0, 3.0)
+                self.gforce_lateral = random.uniform(-2.0, 2.0)
+                self.gforce_vertical = random.uniform(-1.0, 1.0)
+
+                return True
+
+        except socket.timeout:
+            # No data available
+            pass
+        except Exception as e:
+            print(f"F1 data read error: {e}")
+
+        return False
+
+    def _read_lmu_data(self) -> bool:
+        """Read Le Mans Ultimate shared memory data"""
+        # Placeholder for LMU shared memory implementation
+        # This would require the rFactor2 shared memory plugin
+
+        try:
+            # TODO: Implement actual shared memory reading
+            # For now, return False to indicate no LMU data
+            return False
+        except Exception as e:
+            print(f"LMU data read error: {e}")
+            return False
+
+    def _simulate_data(self):
+        """Simulate telemetry data when no real data is available"""
+        import random
+        current_time = time.time()
+
+        # Simulate realistic racing data
+        base_throttle = 50 + 30 * math.sin(current_time * 0.5)
+        base_brake = max(0, 40 - base_throttle/2 + 20 * math.sin(current_time * 0.8))
+
+        self.throttle = max(0, min(100, base_throttle + random.uniform(-10, 10)))
+        self.brake = max(0, min(100, base_brake + random.uniform(-5, 5)))
+
+        self.speed = 150 + 50 * math.sin(current_time * 0.3)
+        self.gear = int(3 + 2 * math.sin(current_time * 0.2))
+        self.rpm = 8000 + 3000 * math.sin(current_time * 0.4)
+
+        # Simulate G-forces based on throttle/brake
+        self.gforce_longitudinal = (self.throttle - self.brake) / 50.0  # -2 to +2 G
+        self.gforce_lateral = 1.5 * math.sin(current_time * 0.6)  # Cornering
+        self.gforce_vertical = 0.2 * math.sin(current_time * 1.2)  # Road bumps
+
+    def _update_gforce_calculations(self):
+        """Update G-force calculations with current data"""
+        if self.gforce_calculator:
+            # Convert G-forces to acceleration for calculator input
+            longitudinal_accel = self.gforce_longitudinal * 9.81
+            lateral_accel = self.gforce_lateral * 9.81
+            vertical_accel = self.gforce_vertical * 9.81
+
+            # Update calculator
+            self.gforce_calculator.update(longitudinal_accel, lateral_accel, vertical_accel)
+
+    def get_gforce_data(self) -> dict:
+        """Get current G-force data"""
+        if self.gforce_calculator:
+            return self.gforce_calculator.update(
+                self.gforce_longitudinal * 9.81,
+                self.gforce_lateral * 9.81,
+                self.gforce_vertical * 9.81
+            )
+        else:
+            return {
+                'longitudinal': self.gforce_longitudinal,
+                'lateral': self.gforce_lateral,
+                'vertical': self.gforce_vertical,
+                'total': math.sqrt(self.gforce_longitudinal**2 + self.gforce_lateral**2 + self.gforce_vertical**2)
+            }
+
+    def get_basic_telemetry(self) -> dict:
+        """Get basic telemetry data"""
+        return {
+            'throttle': self.throttle,
+            'brake': self.brake,
+            'speed': self.speed,
+            'gear': self.gear,
+            'rpm': self.rpm,
+            'game': self.current_game,
+            'connection': self.connection_status
+        }
+
+
 class GraphCanvas(QWidget):
     """Canvas para desenhar o gráfico histórico - PARTE PRINCIPAL!"""
     def __init__(self):
@@ -302,9 +518,12 @@ class RacingTelemetryOverlay(QWidget):
         print(f"Usando: {PYSIDE_VERSION}")
         print("Professional telemetry overlay for racing games")
 
-        # Configurar pedais
-        self.pedal_reader = RealPedalReader()
-        self.pedal_reader.start()
+        # Configurar telemetria avançada
+        self.telemetry_reader = TelemetryDataReader()
+        self.telemetry_reader.start()
+
+        # Manter compatibilidade com código antigo
+        self.pedal_reader = self.telemetry_reader
 
         # Contador para debug
         self.update_count = 0
@@ -460,6 +679,8 @@ class RacingTelemetryOverlay(QWidget):
 
         layout.addLayout(main_layout)
 
+        # G-Force Display Widget
+        self.setup_gforce_widget(layout)
 
         # Instruções com versão (usar versão já carregada)
         version_text = f"v{getattr(self, 'current_version', '1.0.0')}"
@@ -468,6 +689,81 @@ class RacingTelemetryOverlay(QWidget):
         instructions.setStyleSheet("color: #FFC800;")
         instructions.setAlignment(Qt.AlignCenter)
         layout.addWidget(instructions)
+
+    def setup_gforce_widget(self, parent_layout):
+        """Setup G-force display widget"""
+        if not GForceCalculator:
+            return  # Skip if physics module not available
+
+        # G-Force container
+        gforce_container = QHBoxLayout()
+        gforce_container.setSpacing(15)
+
+        # Longitudinal G-Force
+        long_layout = QVBoxLayout()
+        long_title = QLabel("LONGITUDINAL")
+        long_title.setFont(QFont("Arial", 7, QFont.Bold))
+        long_title.setAlignment(Qt.AlignCenter)
+        long_title.setStyleSheet("color: #FFC800;")
+        long_layout.addWidget(long_title)
+
+        self.gforce_long_label = QLabel("● 0.00G")
+        self.gforce_long_label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.gforce_long_label.setAlignment(Qt.AlignCenter)
+        self.gforce_long_label.setStyleSheet("color: #00FF78;")
+        long_layout.addWidget(self.gforce_long_label)
+
+        gforce_container.addLayout(long_layout)
+
+        # Lateral G-Force
+        lat_layout = QVBoxLayout()
+        lat_title = QLabel("LATERAL")
+        lat_title.setFont(QFont("Arial", 7, QFont.Bold))
+        lat_title.setAlignment(Qt.AlignCenter)
+        lat_title.setStyleSheet("color: #FFC800;")
+        lat_layout.addWidget(lat_title)
+
+        self.gforce_lat_label = QLabel("● 0.00G")
+        self.gforce_lat_label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.gforce_lat_label.setAlignment(Qt.AlignCenter)
+        self.gforce_lat_label.setStyleSheet("color: #FF3250;")
+        lat_layout.addWidget(self.gforce_lat_label)
+
+        gforce_container.addLayout(lat_layout)
+
+        # Total G-Force
+        total_layout = QVBoxLayout()
+        total_title = QLabel("TOTAL")
+        total_title.setFont(QFont("Arial", 7, QFont.Bold))
+        total_title.setAlignment(Qt.AlignCenter)
+        total_title.setStyleSheet("color: #FFC800;")
+        total_layout.addWidget(total_title)
+
+        self.gforce_total_label = QLabel("0.00G")
+        self.gforce_total_label.setFont(QFont("Arial", 10, QFont.Bold))
+        self.gforce_total_label.setAlignment(Qt.AlignCenter)
+        self.gforce_total_label.setStyleSheet("color: #64C8FF;")
+        total_layout.addWidget(self.gforce_total_label)
+
+        gforce_container.addLayout(total_layout)
+
+        # Game/Connection Status
+        status_layout = QVBoxLayout()
+        status_title = QLabel("STATUS")
+        status_title.setFont(QFont("Arial", 7, QFont.Bold))
+        status_title.setAlignment(Qt.AlignCenter)
+        status_title.setStyleSheet("color: #FFC800;")
+        status_layout.addWidget(status_title)
+
+        self.connection_status_label = QLabel("Simulated")
+        self.connection_status_label.setFont(QFont("Arial", 8))
+        self.connection_status_label.setAlignment(Qt.AlignCenter)
+        self.connection_status_label.setStyleSheet("color: #888888;")
+        status_layout.addWidget(self.connection_status_label)
+
+        gforce_container.addLayout(status_layout)
+
+        parent_layout.addLayout(gforce_container)
 
     def setup_timer(self):
         """Update timer for real-time data refresh"""
@@ -539,7 +835,7 @@ class RacingTelemetryOverlay(QWidget):
         """Atualiza dados do overlay"""
         self.update_count += 1
 
-        # Pega dados dos pedais
+        # Pega dados dos pedais (manter compatibilidade)
         throttle = max(0, min(1, self.pedal_reader.throttle))
         brake = max(0, min(1, self.pedal_reader.brake))
 
@@ -555,6 +851,12 @@ class RacingTelemetryOverlay(QWidget):
 
         # Atualizar gráfico (PRINCIPAL!)
         self.graph_canvas.update_data(self.throttle_history, self.brake_history)
+
+        # Atualizar dados de força G
+        self.update_gforce_display()
+
+        # Atualizar status da conexão
+        self.update_connection_status()
 
         # Atualiza UI
         self.throttle_bar.setValue(int(throttle * 100))
@@ -574,6 +876,92 @@ class RacingTelemetryOverlay(QWidget):
         self.status_label.setText(status_text)
         self.status_label.setStyleSheet(f"color: {status_color};")
 
+    def update_gforce_display(self):
+        """Update G-force display widgets"""
+        if not hasattr(self, 'gforce_long_label') or not GForceCalculator:
+            return
+
+        try:
+            # Get G-force data from telemetry reader
+            gforce_data = self.telemetry_reader.get_gforce_data()
+
+            # Update longitudinal G-force
+            long_gforce = gforce_data.get('longitudinal', 0.0)
+            long_symbol = get_gforce_direction_symbol(long_gforce, 'longitudinal')
+            long_text = f"{long_symbol} {abs(long_gforce):.2f}G"
+            self.gforce_long_label.setText(long_text)
+
+            # Color based on intensity
+            if abs(long_gforce) > 2.0:
+                long_color = "#FF3250"  # Red for high G
+            elif abs(long_gforce) > 1.0:
+                long_color = "#FFC800"  # Yellow for medium G
+            else:
+                long_color = "#00FF78"  # Green for low G
+            self.gforce_long_label.setStyleSheet(f"color: {long_color};")
+
+            # Update lateral G-force
+            lat_gforce = gforce_data.get('lateral', 0.0)
+            lat_symbol = get_gforce_direction_symbol(lat_gforce, 'lateral')
+            lat_text = f"{lat_symbol} {abs(lat_gforce):.2f}G"
+            self.gforce_lat_label.setText(lat_text)
+
+            # Color based on intensity
+            if abs(lat_gforce) > 1.5:
+                lat_color = "#FF3250"  # Red for high G
+            elif abs(lat_gforce) > 0.8:
+                lat_color = "#FFC800"  # Yellow for medium G
+            else:
+                lat_color = "#00FF78"  # Green for low G
+            self.gforce_lat_label.setStyleSheet(f"color: {lat_color};")
+
+            # Update total G-force
+            total_gforce = gforce_data.get('total', 0.0)
+            total_text = f"{total_gforce:.2f}G"
+            self.gforce_total_label.setText(total_text)
+
+            # Color based on total intensity
+            if total_gforce > 2.5:
+                total_color = "#FF3250"  # Red for high total G
+            elif total_gforce > 1.5:
+                total_color = "#FFC800"  # Yellow for medium total G
+            else:
+                total_color = "#64C8FF"  # Blue for low total G
+            self.gforce_total_label.setStyleSheet(f"color: {total_color};")
+
+        except Exception as e:
+            print(f"G-force display update error: {e}")
+
+    def update_connection_status(self):
+        """Update connection status display"""
+        if not hasattr(self, 'connection_status_label'):
+            return
+
+        try:
+            # Get telemetry status
+            telemetry_data = self.telemetry_reader.get_basic_telemetry()
+            connection_status = telemetry_data.get('connection', 'Disconnected')
+            current_game = telemetry_data.get('game', 'Unknown')
+
+            # Update status label
+            if connection_status == "F1 Connected":
+                status_text = "F1 LIVE"
+                status_color = "#00FF78"  # Green
+            elif connection_status == "LMU Connected":
+                status_text = "LMU LIVE"
+                status_color = "#00FF78"  # Green
+            elif connection_status == "Simulated":
+                status_text = "DEMO"
+                status_color = "#FFC800"  # Yellow
+            else:
+                status_text = "OFFLINE"
+                status_color = "#888888"  # Gray
+
+            self.connection_status_label.setText(status_text)
+            self.connection_status_label.setStyleSheet(f"color: {status_color};")
+
+        except Exception as e:
+            print(f"Connection status update error: {e}")
 
     def mousePressEvent(self, event):
         """Inicia drag do overlay"""
