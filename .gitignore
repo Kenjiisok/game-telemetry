@@ -45,3 +45,6 @@ test_*.py
 *_old.exe
 *_v*.exe
 KenjiOverlay-Debug.exe
+
+# Executables (distribute via GitHub Releases)
+dist/*.exe
