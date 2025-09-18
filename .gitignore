@@ -23,6 +23,8 @@ MANIFEST
 
 # PyInstaller
 *.spec
+!KenjiOverlay.spec
+!updater.spec
 
 # Virtual environments
 venv/

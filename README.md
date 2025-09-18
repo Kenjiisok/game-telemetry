@@ -1,15 +1,16 @@
-# Racing Telemetry Pedals
+# Racing Telemetry Overlay
 
-Professional real-time pedal telemetry overlay for Le Mans Ultimate and F1 games.
+Professional real-time telemetry overlay for Le Mans Ultimate and F1 games with advanced G-force visualization.
 
 ## Features
 
-- **Le Mans Ultimate** - Native UDP support
-- **F1 2023/2024** - Complete pedal telemetry
-- **Modern interface** - Real-time bars and graphs
-- **Visual history** - Last 10 seconds of data
-- **Auto-detection** - Automatically detects your game
-- **Optimized performance** - Smooth 60 FPS
+- **G-Force Visualization** - Real-time lateral and longitudinal force display
+- **Friction Circle** - Professional racing-style G-force circle
+- **Le Mans Ultimate** - Native shared memory support
+- **F1 2023/2024** - Complete UDP telemetry
+- **Pedal Telemetry** - Real-time throttle/brake visualization
+- **Professional Interface** - Clean, racing-focused design
+- **Always on Top** - Overlay stays visible over any application
 - **Auto-updates** - Automatic update system
 
 ## Installation
@@ -30,20 +31,19 @@ Professional real-time pedal telemetry overlay for Le Mans Ultimate and F1 games
    ```
 3. Run the overlay:
    ```bash
-   python overlay.py
+   python racing_overlay.py
    ```
 
 ## Game Configuration
 
 ### Le Mans Ultimate
 
-**IMPORTANT: Requires plugin installation**
+**IMPORTANT: Requires rF2 Shared Memory Plugin**
 
-1. Download `rFactor2SharedMemoryMapPlugin64.dll` from the rFactor2 SDK
-2. Copy it to `Le Mans Ultimate\Plugins\`
-3. Edit `CustomPluginVariables.JSON` to enable the plugin
-4. **Set game to BORDERLESS mode** (not fullscreen)
-5. Restart the game
+1. Install the rFactor2 Shared Memory Plugin in your Le Mans Ultimate installation
+2. Ensure the plugin is properly configured and active
+3. **Set game to BORDERLESS mode** (not fullscreen)
+4. Start a session (practice, qualifying, or race)
 
 ### F1 2023/2024
 
@@ -64,10 +64,11 @@ Professional real-time pedal telemetry overlay for Le Mans Ultimate and F1 games
 
 ### Interface
 
-- **Pedal bars**: Show current throttle/brake percentage
-- **History graph**: Last 10 seconds of telemetry data
-- **Connection status**: Shows if receiving data
-- **Packet counter**: Performance monitoring
+- **G-Force Circle**: Real-time lateral and longitudinal G-force visualization
+- **Pedal Bars**: Vertical throttle and brake percentage display
+- **G-Force Values**: Numerical display of current forces
+- **Connection Status**: Shows game connection state
+- **Professional Layout**: Clean racing-focused design
 
 ## Updates
 
@@ -82,12 +83,12 @@ The application includes automatic update checking:
 
 ### No data appearing
 
-1. Check telemetry is enabled in game settings
-2. Verify correct port and IP configuration
-3. **For LMU**: Ensure game is in BORDERLESS mode
-4. **For LMU**: Verify plugin is installed correctly
-5. Temporarily disable firewall
-6. Restart game after configuration
+1. **For LMU**: Ensure rF2 Shared Memory Plugin is installed and active
+2. **For LMU**: Set game to BORDERLESS mode (not fullscreen)
+3. **For F1**: Check telemetry is enabled with correct port settings
+4. Start a racing session (practice, qualifying, or race)
+5. Temporarily disable firewall if needed
+6. Restart game after configuration changes
 
 ### Performance issues
 
@@ -97,11 +98,11 @@ The application includes automatic update checking:
 
 ## Supported Games
 
-| Game             | Method                 | Status    |
-| ---------------- | ---------------------- | --------- |
-| Le Mans Ultimate | Shared Memory + Plugin | Supported |
-| F1 2024          | UDP (port 20777)       | Supported |
-| F1 2023          | UDP (port 20777)       | Supported |
+| Game             | Method           | G-Force Support | Status    |
+| ---------------- | ---------------- | --------------- | --------- |
+| Le Mans Ultimate | Shared Memory    | Full            | Supported |
+| F1 2024          | UDP (port 20777) | Limited         | Supported |
+| F1 2023          | UDP (port 20777) | Limited         | Supported |
 
 ## System Requirements
 
