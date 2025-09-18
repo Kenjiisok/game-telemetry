@@ -40,8 +40,10 @@ Professional real-time telemetry overlay for Le Mans Ultimate and F1 games with 
 
 **IMPORTANT: Requires rF2 Shared Memory Plugin**
 
-1. Install the rFactor2 Shared Memory Plugin in your Le Mans Ultimate installation
-2. Ensure the plugin is properly configured and active
+1. **Download and install** the [rF2 Shared Memory Map Plugin](https://github.com/TheIronWolfModding/rF2SharedMemoryMapPlugin)
+   - Follow the installation instructions in the plugin repository
+   - This plugin is **essential** for telemetry data access
+2. Ensure the plugin is properly configured and active in Le Mans Ultimate
 3. **Set game to BORDERLESS mode** (not fullscreen)
 4. Start a session (practice, qualifying, or race)
 
