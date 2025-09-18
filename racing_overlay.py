@@ -1121,7 +1121,7 @@ class GForceCircle(QWidget):
         self.display_radius_g = 3.0  # Maximum G-force range
         self.global_scale = (self.display_size * 0.5) / self.display_radius_g
         self.area_center = self.display_size * 0.5
-        self.dot_size = 8
+        self.dot_size = 14  
         self.show_labels = show_labels
 
         # Current G-force values
@@ -1140,7 +1140,7 @@ class GForceCircle(QWidget):
         self.display_size = min(width, height)
         self.global_scale = (self.display_size * 0.5) / self.display_radius_g
         self.area_center = self.display_size * 0.5
-        self.dot_size = max(3, self.display_size // 25)  # Ajustar tamanho do ponto
+        self.dot_size = max(5, int((self.display_size // 25) * 1.82))  
         self.last_x = self.area_center
         self.last_y = self.area_center
 
